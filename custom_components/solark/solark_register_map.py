@@ -723,27 +723,49 @@ class SolArkRegisterMap(RegisterMap["SolArkRegisterMap"]):
 
     @staticmethod
     def value_is_injected(register_map: "SolArkRegisterMap", entry: RegisterMapEntry):
-        # Value is injected into the data dictionary
+        """Placeholder for values injected directly into data dictionary."""
         return
 
     @staticmethod
     def fault_code_to_message(register_map: "SolArkRegisterMap", entry: RegisterMapEntry):
-        fault_message_list = translate_fault_code_to_messages(int(register_map.FAULT_INFO_RAW))
+        """Decode raw 64-bit fault bitmap with null safety on read timeout."""
+        raw_val = register_map.FAULT_INFO_RAW.register_value
+        if raw_val is None:
+            entry.register_value = "Unknown"
+            return
+        fault_message_list = translate_fault_code_to_messages(int(raw_val))
         entry.register_value = ", ".join(fault_message_list)
 
     @staticmethod
     def pv_input_power(register_map: "SolArkRegisterMap", entry: RegisterMapEntry):
-        entry.register_value = register_map.PV1_P + register_map.PV2_P + register_map.PV3_P
+        """Calculate total PV input power with null safety on individual string reads."""
+        v1 = register_map.PV1_P.register_value
+        v2 = register_map.PV2_P.register_value
+        v3 = register_map.PV3_P.register_value
+        if v1 is None and v2 is None and v3 is None:
+            entry.register_value = None
+        else:
+            entry.register_value = (v1 or 0) + (v2 or 0) + (v3 or 0)
 
     @staticmethod
     def grid_relay_status(register_map: "SolArkRegisterMap", entry: RegisterMapEntry):
-        raw: int = int(register_map.GRID_RLY_RAW)
-        entry.register_value = GRID_RELAY_STATUS.get(int(raw), "Unknown") if raw is not None else "Unknown"
+        """Translate grid relay raw value with null safety on read timeout."""
+        raw_val = register_map.GRID_RLY_RAW.register_value
+        if raw_val is None:
+            entry.register_value = "Unknown"
+            return
+        raw = int(raw_val)
+        entry.register_value = GRID_RELAY_STATUS.get(raw, "Unknown")
 
     @staticmethod
     def gen_relay_status(register_map: "SolArkRegisterMap", entry: RegisterMapEntry):
-        raw: int = int(register_map.GEN_RLY_RAW) & 0x0F  # mask low 4 bits
-        entry.register_value = GEN_RELAY_STATUS.get(int(raw), "Unknown") if raw is not None else "Unknown"
+        """Translate generator relay raw value with null safety on read timeout."""
+        raw_val = register_map.GEN_RLY_RAW.register_value
+        if raw_val is None:
+            entry.register_value = "Unknown"
+            return
+        raw = int(raw_val) & 0x0F  # mask low 4 bits
+        entry.register_value = GEN_RELAY_STATUS.get(raw, "Unknown")
 
     FAULTMSG = RegisterMapEntry(
         source_is_register_read=False,

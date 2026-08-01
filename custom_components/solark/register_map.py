@@ -1,4 +1,5 @@
 import logging
+import dataclasses
 from dataclasses import dataclass
 from enum import Enum, StrEnum
 from typing import Any, Callable, Generic, Iterator, Optional, TypeVar, Union
@@ -220,21 +221,24 @@ class RegisterMap(Generic[T]):
     """Base class for register maps that collects RegisterMapEntry class attributes across inheritance."""
 
     def __init__(self):
-        # Collect all RegisterMapEntry attributes from the class and parent classes
+        # Collect and clone all RegisterMapEntry attributes per instance to isolate state
+        # between multiple inverter/hub instances.
         entries_to_sort: dict[str, "RegisterMapEntry"] = {}
 
-        # Collect all RegisterMapEntry attributes from the base and derived classes.
-        # Iterate the class hierarchy (MRO) from base → derived so that derived
-        # class entries override any entries with the same name from the base class.
         for cls in reversed(self.__class__.__mro__):
             for attr_name, attr_value in cls.__dict__.items():
                 if isinstance(attr_value, RegisterMapEntry):
-                    entries_to_sort[attr_name] = attr_value
+                    # Clone entry for instance-level isolation
+                    entry_copy = dataclasses.replace(attr_value)
+                    entries_to_sort[attr_name] = entry_copy
+                    setattr(self, attr_name, entry_copy)
 
         # Sorted list of entries by address
         self._sorted: list["RegisterMapEntry"] = sorted(entries_to_sort.values(), key=lambda e: e.address)
+        # Instance map keyed by key attribute
+        self._map: dict[str, "RegisterMapEntry"] = {entry.key: entry for entry in entries_to_sort.values()}
 
-        # Ensure no overlapping address ranges
+        # Ensure no overlapping address ranges among registers read directly
         prev = None
         for entry in self.entries_register_read:
             if prev is not None:
