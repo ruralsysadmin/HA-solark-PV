@@ -302,6 +302,8 @@ class SolArkDataPoller:
         r96_108 = client.read_holding_registers(96, 13, slave_id)
         # Read range 109-114 (PV Voltages and Currents)
         r109_114 = client.read_holding_registers(109, 6, slave_id)
+        # Read range 145-148 (Time-of-Use Mode, TOU Master Enable, TOU Sell Power Limit)
+        r145_148 = client.read_holding_registers(145, 4, slave_id)
         # Read range 150-170 (Grid L1/L2 Voltages and Powers)
         r150_170 = client.read_holding_registers(150, 21, slave_id)
         # Read range 183-196 (Battery SOC/Volt/Power/Current, PV Powers, Relays)
@@ -334,6 +336,10 @@ class SolArkDataPoller:
         pv2_c = round((r109_114[3] if r109_114 else 0) * 0.1, 1)
         pv3_v = round((r109_114[4] if r109_114 else 0) * 0.1, 1)
         pv3_c = round((r109_114[5] if r109_114 else 0) * 0.1, 1)
+
+        tou_mode_raw = r145_148[0] if r145_148 else 0
+        tou_enable_raw = r145_148[1] if r145_148 and len(r145_148) > 1 else 0
+        tou_sell_power = r145_148[2] if r145_148 and len(r145_148) > 2 else 0
 
         grid_l1_v = round((r150_170[0] if r150_170 else 0) * 0.1, 1)
         grid_l2_v = round((r150_170[1] if r150_170 else 0) * 0.1, 1)
@@ -452,6 +458,9 @@ class SolArkDataPoller:
                 {"address": 112, "key": "pv2_c", "name": "PV2 Current", "val": pv2_c, "unit": "A"},
                 {"address": 113, "key": "pv3_v", "name": "PV3 Voltage", "val": pv3_v, "unit": "V"},
                 {"address": 114, "key": "pv3_c", "name": "PV3 Current", "val": pv3_c, "unit": "A"},
+                {"address": 145, "key": "tou_mode", "name": "Time-of-Use Mode Flag", "val": f"{tou_mode_raw} ({'Active' if tou_mode_raw == 1 else 'Inactive'})", "unit": ""},
+                {"address": 146, "key": "tou_enable", "name": "Time-of-Use Master Enable", "val": f"{tou_enable_raw} ({'Enabled [ON]' if tou_enable_raw == 1 else 'Disabled [OFF]'})", "unit": ""},
+                {"address": 147, "key": "tou_sell_power", "name": "Time-of-Use Sell Power Limit", "val": tou_sell_power, "unit": "W"},
                 {"address": 150, "key": "gridl1n_v", "name": "Grid L1-N Voltage", "val": grid_l1_v, "unit": "V"},
                 {"address": 151, "key": "gridl2n_v", "name": "Grid L2-N Voltage", "val": grid_l2_v, "unit": "V"},
                 {"address": 167, "key": "gridl1_p", "name": "Grid L1 Power", "val": grid_l1_p, "unit": "W"},
@@ -566,6 +575,9 @@ class SolArkDataPoller:
                 {"address": 112, "key": "pv2_c", "name": "PV2 Current", "val": round(pv2_p / 358.8, 1) if pv2_p else 0, "unit": "A"},
                 {"address": 113, "key": "pv3_v", "name": "PV3 Voltage", "val": 372.1, "unit": "V"},
                 {"address": 114, "key": "pv3_c", "name": "PV3 Current", "val": round(pv3_p / 372.1, 1) if pv3_p else 0, "unit": "A"},
+                {"address": 145, "key": "tou_mode", "name": "Time-of-Use Mode Flag", "val": "1 (Active)", "unit": ""},
+                {"address": 146, "key": "tou_enable", "name": "Time-of-Use Master Enable", "val": "1 (Enabled [ON])", "unit": ""},
+                {"address": 147, "key": "tou_sell_power", "name": "Time-of-Use Sell Power Limit", "val": 8000, "unit": "W"},
                 {"address": 150, "key": "gridl1n_v", "name": "Grid L1-N Voltage", "val": 121.4, "unit": "V"},
                 {"address": 151, "key": "gridl2n_v", "name": "Grid L2-N Voltage", "val": 120.9, "unit": "V"},
                 {"address": 167, "key": "gridl1_p", "name": "Grid L1 Power", "val": int(grid_p / 2), "unit": "W"},
