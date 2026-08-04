@@ -300,13 +300,18 @@ class SolArkDataPoller:
         r84_91 = client.read_holding_registers(84, 8, slave_id)
         # Read range 96-108 (Total PV Energy, Fault Info, Batt Cap, Daily PV)
         r96_108 = client.read_holding_registers(96, 13, slave_id)
-        # Read range 109-114 (PV Voltages and Currents)
+        # Read range 109-114 (PV Voltages and Currents - 6 registers)
         r109_114 = client.read_holding_registers(109, 6, slave_id)
-        # Read range 140-179 (System Work Modes, TOU Registers 140-179, Grid Voltages & Powers)
-        r140_179 = client.read_holding_registers(140, 40, slave_id)
-        # Read range 220-250 (Extended Work Modes & TOU Settings 220-250)
-        r220_250 = client.read_holding_registers(220, 31, slave_id)
-        # Read range 183-196 (Battery SOC/Volt/Power/Current, PV Powers, Relays)
+        # Read range 140-159 (System Work Modes & TOU Settings - 20 registers max per call)
+        r140_159 = client.read_holding_registers(140, 20, slave_id)
+        # Read range 160-179 (TOU Schedules & Power Limits - 20 registers max per call)
+        r160_179 = client.read_holding_registers(160, 20, slave_id)
+        r140_179 = (r140_159 or []) + (r160_179 or [])
+
+        # Read range 220-239 (Extended Work Modes - 20 registers max per call)
+        r220_239 = client.read_holding_registers(220, 20, slave_id)
+        r220_250 = r220_239 or []
+        # Read range 183-196 (Battery SOC/Volt/Power/Current, PV Powers, Relays - 14 registers)
         r183_196 = client.read_holding_registers(183, 14, slave_id)
 
         # Parse registers
