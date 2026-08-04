@@ -302,8 +302,10 @@ class SolArkDataPoller:
         r96_108 = client.read_holding_registers(96, 13, slave_id)
         # Read range 109-114 (PV Voltages and Currents)
         r109_114 = client.read_holding_registers(109, 6, slave_id)
-        # Read range 140-179 (System Work Modes, TOU Registers 140-149, Grid Voltages & Powers 150-170)
+        # Read range 140-179 (System Work Modes, TOU Registers 140-179, Grid Voltages & Powers)
         r140_179 = client.read_holding_registers(140, 40, slave_id)
+        # Read range 220-250 (Extended Work Modes & TOU Settings 220-250)
+        r220_250 = client.read_holding_registers(220, 31, slave_id)
         # Read range 183-196 (Battery SOC/Volt/Power/Current, PV Powers, Relays)
         r183_196 = client.read_holding_registers(183, 14, slave_id)
 
@@ -446,49 +448,119 @@ class SolArkDataPoller:
                 "fault_raw_bitmap": str(fault_raw),
                 "active_faults": active_faults,
             },
-            "registers": [
-                {"address": 60, "key": "dailyinv_e", "name": "Daily Inverter Energy", "val": daily_inv_e, "unit": "kWh"},
-                {"address": 70, "key": "daybattc_e", "name": "Daily Battery Charge Energy", "val": daily_batt_c_e, "unit": "kWh"},
-                {"address": 71, "key": "daybattd_e", "name": "Daily Battery Discharge Energy", "val": daily_batt_d_e, "unit": "kWh"},
-                {"address": 76, "key": "dailygridbuy_e", "name": "Daily Grid Buy Energy", "val": daily_grid_buy, "unit": "kWh"},
-                {"address": 77, "key": "dailygridsell_e", "name": "Daily Grid Sell Energy", "val": daily_grid_sell, "unit": "kWh"},
-                {"address": 79, "key": "gridfreq", "name": "Grid Frequency", "val": grid_freq, "unit": "Hz"},
-                {"address": 84, "key": "dailyload_e", "name": "Daily Load Energy", "val": daily_load_e, "unit": "kWh"},
-                {"address": 85, "key": "totalload_e", "name": "Total Load Energy", "val": tot_load_e, "unit": "kWh"},
-                {"address": 90, "key": "dchstempc", "name": "DC Heatsink Temperature", "val": dc_temp_c, "unit": "°C"},
-                {"address": 91, "key": "achstempc", "name": "AC Heatsink Temperature", "val": ac_temp_c, "unit": "°C"},
-                {"address": 108, "key": "dailypv_e", "name": "Daily PV Energy", "val": daily_pv_e, "unit": "kWh"},
-                {"address": 109, "key": "pv1_v", "name": "PV1 Voltage", "val": pv1_v, "unit": "V"},
-                {"address": 110, "key": "pv1_c", "name": "PV1 Current", "val": pv1_c, "unit": "A"},
-                {"address": 111, "key": "pv2_v", "name": "PV2 Voltage", "val": pv2_v, "unit": "V"},
-                {"address": 112, "key": "pv2_c", "name": "PV2 Current", "val": pv2_c, "unit": "A"},
-                {"address": 113, "key": "pv3_v", "name": "PV3 Voltage", "val": pv3_v, "unit": "V"},
-                {"address": 114, "key": "pv3_c", "name": "PV3 Current", "val": pv3_c, "unit": "A"},
-                {"address": 140, "key": "r140_val", "name": "System Setting / Mode R140", "val": r140_val, "unit": ""},
-                {"address": 141, "key": "r141_val", "name": "System Setting / Mode R141", "val": r141_val, "unit": ""},
-                {"address": 142, "key": "r142_val", "name": "System Setting / Mode R142", "val": r142_val, "unit": ""},
-                {"address": 143, "key": "r143_val", "name": "System Setting / Mode R143", "val": r143_val, "unit": ""},
-                {"address": 144, "key": "r144_val", "name": "System Setting / Mode R144", "val": r144_val, "unit": ""},
-                {"address": 145, "key": "r145_val", "name": "System Setting / Mode R145", "val": r145_val, "unit": ""},
-                {"address": 146, "key": "r146_val", "name": "System Setting / Mode R146", "val": r146_val, "unit": ""},
-                {"address": 147, "key": "r147_val", "name": "System Setting / Mode R147", "val": r147_val, "unit": ""},
-                {"address": 148, "key": "r148_val", "name": "System Setting / Mode R148", "val": r148_val, "unit": ""},
-                {"address": 149, "key": "r149_val", "name": "System Setting / Mode R149", "val": r149_val, "unit": ""},
-                {"address": 150, "key": "gridl1n_v", "name": "Grid L1-N Voltage", "val": grid_l1_v, "unit": "V"},
-                {"address": 151, "key": "gridl2n_v", "name": "Grid L2-N Voltage", "val": grid_l2_v, "unit": "V"},
-                {"address": 167, "key": "gridl1_p", "name": "Grid L1 Power", "val": grid_l1_p, "unit": "W"},
-                {"address": 168, "key": "gridl2_p", "name": "Grid L2 Power", "val": grid_l2_p, "unit": "W"},
-                {"address": 169, "key": "grid_p", "name": "Total Grid Power", "val": grid_tot_p, "unit": "W"},
-                {"address": 183, "key": "batt_v", "name": "Battery Voltage", "val": batt_v, "unit": "V"},
-                {"address": 184, "key": "batt_soc", "name": "Battery State of Charge", "val": batt_soc, "unit": "%"},
-                {"address": 186, "key": "pv1_p", "name": "PV1 Power", "val": pv1_p, "unit": "W"},
-                {"address": 187, "key": "pv2_p", "name": "PV2 Power", "val": pv2_p, "unit": "W"},
-                {"address": 188, "key": "pv3_p", "name": "PV3 Power", "val": pv3_p, "unit": "W"},
-                {"address": 190, "key": "batt_p", "name": "Battery Power", "val": batt_p, "unit": "W"},
-                {"address": 191, "key": "batt_c", "name": "Battery Current", "val": batt_c, "unit": "A"},
-                {"address": 194, "key": "grid_rly_raw", "name": "Grid Relay Raw", "val": grid_relay_raw, "unit": ""},
-                {"address": 195, "key": "gen_rly_raw", "name": "Generator Relay Raw", "val": gen_relay_raw, "unit": ""},
-            ],
+        # Base register list
+        registers_list = [
+            {"address": 60, "key": "dailyinv_e", "name": "Daily Inverter Energy", "val": daily_inv_e, "unit": "kWh"},
+            {"address": 70, "key": "daybattc_e", "name": "Daily Battery Charge Energy", "val": daily_batt_c_e, "unit": "kWh"},
+            {"address": 71, "key": "daybattd_e", "name": "Daily Battery Discharge Energy", "val": daily_batt_d_e, "unit": "kWh"},
+            {"address": 76, "key": "dailygridbuy_e", "name": "Daily Grid Buy Energy", "val": daily_grid_buy, "unit": "kWh"},
+            {"address": 77, "key": "dailygridsell_e", "name": "Daily Grid Sell Energy", "val": daily_grid_sell, "unit": "kWh"},
+            {"address": 79, "key": "gridfreq", "name": "Grid Frequency", "val": grid_freq, "unit": "Hz"},
+            {"address": 84, "key": "dailyload_e", "name": "Daily Load Energy", "val": daily_load_e, "unit": "kWh"},
+            {"address": 85, "key": "totalload_e", "name": "Total Load Energy", "val": tot_load_e, "unit": "kWh"},
+            {"address": 90, "key": "dchstempc", "name": "DC Heatsink Temperature", "val": dc_temp_c, "unit": "°C"},
+            {"address": 91, "key": "achstempc", "name": "AC Heatsink Temperature", "val": ac_temp_c, "unit": "°C"},
+            {"address": 108, "key": "dailypv_e", "name": "Daily PV Energy", "val": daily_pv_e, "unit": "kWh"},
+            {"address": 109, "key": "pv1_v", "name": "PV1 Voltage", "val": pv1_v, "unit": "V"},
+            {"address": 110, "key": "pv1_c", "name": "PV1 Current", "val": pv1_c, "unit": "A"},
+            {"address": 111, "key": "pv2_v", "name": "PV2 Voltage", "val": pv2_v, "unit": "V"},
+            {"address": 112, "key": "pv2_c", "name": "PV2 Current", "val": pv2_c, "unit": "A"},
+            {"address": 113, "key": "pv3_v", "name": "PV3 Voltage", "val": pv3_v, "unit": "V"},
+            {"address": 114, "key": "pv3_c", "name": "PV3 Current", "val": pv3_c, "unit": "A"},
+        ]
+
+        # Append all registers R140-R179
+        if r140_179:
+            for idx, raw_val in enumerate(r140_179):
+                addr = 140 + idx
+                registers_list.append({
+                    "address": addr,
+                    "key": f"r{addr}_val",
+                    "name": f"Holding Register R{addr}",
+                    "val": raw_val,
+                    "unit": ""
+                })
+
+        # Append all registers R220-R250
+        if r220_250:
+            for idx, raw_val in enumerate(r220_250):
+                addr = 220 + idx
+                registers_list.append({
+                    "address": addr,
+                    "key": f"r{addr}_val",
+                    "name": f"Holding Register R{addr}",
+                    "val": raw_val,
+                    "unit": ""
+                })
+
+        # Append battery and relay metrics
+        registers_list.extend([
+            {"address": 183, "key": "batt_v", "name": "Battery Voltage", "val": batt_v, "unit": "V"},
+            {"address": 184, "key": "batt_soc", "name": "Battery State of Charge", "val": batt_soc, "unit": "%"},
+            {"address": 186, "key": "pv1_p", "name": "PV1 Power", "val": pv1_p, "unit": "W"},
+            {"address": 187, "key": "pv2_p", "name": "PV2 Power", "val": pv2_p, "unit": "W"},
+            {"address": 188, "key": "pv3_p", "name": "PV3 Power", "val": pv3_p, "unit": "W"},
+            {"address": 190, "key": "batt_p", "name": "Battery Power", "val": batt_p, "unit": "W"},
+            {"address": 191, "key": "batt_c", "name": "Battery Current", "val": batt_c, "unit": "A"},
+            {"address": 194, "key": "grid_rly_raw", "name": "Grid Relay Raw", "val": grid_relay_raw, "unit": ""},
+            {"address": 195, "key": "gen_rly_raw", "name": "Generator Relay Raw", "val": gen_relay_raw, "unit": ""},
+        ])
+
+        return {
+            "mode": "live",
+            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "summary": {
+                "pv_power_w": pv_tot_p,
+                "battery_power_w": batt_p,
+                "battery_soc_pct": batt_soc,
+                "grid_power_w": grid_tot_p,
+                "load_power_w": load_power,
+                "grid_connected": grid_relay_raw == 1,
+            },
+            "solar": {
+                "pv_total_power_w": pv_tot_p,
+                "daily_pv_energy_kwh": daily_pv_e,
+                "strings": [
+                    {"name": "PV String 1", "voltage_v": pv1_v, "current_a": pv1_c, "power_w": pv1_p},
+                    {"name": "PV String 2", "voltage_v": pv2_v, "current_a": pv2_c, "power_w": pv2_p},
+                    {"name": "PV String 3", "voltage_v": pv3_v, "current_a": pv3_c, "power_w": pv3_p},
+                ],
+            },
+            "battery": {
+                "soc_pct": batt_soc,
+                "power_w": batt_p,
+                "current_a": batt_c,
+                "voltage_v": batt_v,
+                "status": "Charging" if batt_p < 0 else ("Discharging" if batt_p > 0 else "Idle"),
+                "daily_charge_kwh": daily_batt_c_e,
+                "daily_discharge_kwh": daily_batt_d_e,
+            },
+            "grid": {
+                "status": "Connected" if grid_relay_raw == 1 else "Disconnected / Outage",
+                "relay_code": grid_relay_raw,
+                "frequency_hz": grid_freq,
+                "voltage_l1_v": grid_l1_v,
+                "voltage_l2_v": grid_l2_v,
+                "power_l1_w": grid_l1_p,
+                "power_l2_w": grid_l2_p,
+                "power_total_w": grid_tot_p,
+                "daily_buy_kwh": daily_grid_buy,
+                "daily_sell_kwh": daily_grid_sell,
+            },
+            "load": {
+                "power_w": load_power,
+                "daily_load_kwh": daily_load_e,
+                "total_load_kwh": tot_load_e,
+                "frequency_hz": load_freq,
+                "inverter_freq_hz": inv_freq,
+            },
+            "diagnostics": {
+                "dc_temp_c": dc_temp_c,
+                "ac_temp_c": ac_temp_c,
+                "fault_raw_bitmap": str(fault_raw),
+                "active_faults": active_faults,
+            },
+            "registers": registers_list,
         }
 
     def _generate_demo_data(self) -> dict:
