@@ -71,6 +71,9 @@ FAULT_TABLE: dict[int, tuple[str, str, str]] = {
     64: ("F64", "Heatsink_HighTemp_Fault", "Heatsink over-temperature; check fans & cooling clearance."),
 }
 
+CONFIG_YAML_FILE = BASE_DIR / "config.yaml"
+CONFIG_JSON_FILE = BASE_DIR / "config.json"
+
 DEFAULT_CONFIG = {
     "host": "192.168.1.100",
     "port": 502,
@@ -78,30 +81,106 @@ DEFAULT_CONFIG = {
     "timeout": 3,
     "scan_interval": 5,
     "server_port": 8080,
+    "server_host": "0.0.0.0",
     "demo_mode": False,
 }
 
 
 def load_config() -> dict:
-    """Load configuration from JSON file or create defaults."""
-    if CONFIG_FILE.exists():
+    """Load configuration from config.yaml or config.json, with automatic fallback."""
+    cfg = DEFAULT_CONFIG.copy()
+
+    # 1. Try reading config.yaml first
+    if CONFIG_YAML_FILE.exists():
         try:
-            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+            # Try PyYAML if installed
+            import yaml
+            with open(CONFIG_YAML_FILE, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+                if isinstance(data, dict):
+                    mb = data.get("modbus", {})
+                    srv = data.get("server", {})
+                    if "host" in mb: cfg["host"] = str(mb["host"]).strip()
+                    if "port" in mb: cfg["port"] = int(mb["port"])
+                    if "slave_id" in mb: cfg["slave_id"] = int(mb["slave_id"])
+                    if "timeout" in mb: cfg["timeout"] = float(mb["timeout"])
+                    if "scan_interval" in mb: cfg["scan_interval"] = int(mb["scan_interval"])
+                    if "port" in srv: cfg["server_port"] = int(srv["port"])
+                    if "host" in srv: cfg["server_host"] = str(srv["host"]).strip()
+                    if "demo_mode" in srv: cfg["demo_mode"] = bool(srv["demo_mode"])
+                    _LOGGER.info("Loaded configuration from config.yaml (Host: %s:%d)", cfg["host"], cfg["port"])
+                    return cfg
+        except ImportError:
+            # Dependency-free simple YAML parser fallback
+            try:
+                with open(CONFIG_YAML_FILE, "r", encoding="utf-8") as f:
+                    lines = f.readlines()
+                current_section = None
+                for line in lines:
+                    line_str = line.split("#")[0].strip()
+                    if not line_str:
+                        continue
+                    if line_str.endswith(":"):
+                        current_section = line_str[:-1].strip()
+                        continue
+                    if ":" in line_str:
+                        parts = line_str.split(":", 1)
+                        k = parts[0].strip()
+                        v = parts[1].strip().strip('"\'')
+                        if current_section == "modbus":
+                            if k == "host": cfg["host"] = v
+                            elif k == "port": cfg["port"] = int(v)
+                            elif k == "slave_id": cfg["slave_id"] = int(v)
+                            elif k == "timeout": cfg["timeout"] = float(v)
+                            elif k == "scan_interval": cfg["scan_interval"] = int(v)
+                        elif current_section == "server":
+                            if k == "port": cfg["server_port"] = int(v)
+                            elif k == "host": cfg["server_host"] = v
+                            elif k == "demo_mode": cfg["demo_mode"] = v.lower() == "true"
+                _LOGGER.info("Parsed configuration from config.yaml (Host: %s:%d)", cfg["host"], cfg["port"])
+                return cfg
+            except Exception as err:
+                _LOGGER.warning("Could not parse config.yaml: %s", err)
+        except Exception as err:
+            _LOGGER.warning("Error reading config.yaml: %s", err)
+
+    # 2. Fall back to config.json if config.yaml is not present
+    if CONFIG_JSON_FILE.exists():
+        try:
+            with open(CONFIG_JSON_FILE, "r", encoding="utf-8") as f:
                 data = json.load(f)
+                _LOGGER.info("Loaded configuration from config.json (Host: %s)", data.get("host"))
                 return {**DEFAULT_CONFIG, **data}
         except Exception as err:
-            _LOGGER.warning("Could not read config.json, using defaults: %s", err)
-    return DEFAULT_CONFIG.copy()
+            _LOGGER.warning("Could not read config.json: %s", err)
+
+    return cfg
 
 
 def save_config(cfg: dict) -> None:
-    """Save configuration to JSON file."""
+    """Save configuration to config.yaml and config.json."""
+    # Write config.yaml
+    yaml_content = f"""# Sol-Ark RS485-to-WiFi / Modbus TCP Gateway Connection Configuration
+modbus:
+  host: "{cfg.get('host', '192.168.1.100')}"
+  port: {cfg.get('port', 502)}
+  slave_id: {cfg.get('slave_id', 1)}
+  timeout: {cfg.get('timeout', 3)}
+  scan_interval: {cfg.get('scan_interval', 5)}
+
+server:
+  host: "{cfg.get('server_host', '0.0.0.0')}"
+  port: {cfg.get('server_port', 8080)}
+  demo_mode: {"true" if cfg.get('demo_mode') else "false"}
+"""
     try:
-        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+        with open(CONFIG_YAML_FILE, "w", encoding="utf-8") as f:
+            f.write(yaml_content)
+        with open(CONFIG_JSON_FILE, "w", encoding="utf-8") as f:
             json.dump(cfg, f, indent=2)
-        _LOGGER.info("Configuration saved to %s", CONFIG_FILE)
+        _LOGGER.info("Configuration updated and saved to config.yaml & config.json")
     except Exception as err:
-        _LOGGER.error("Failed to save config.json: %s", err)
+        _LOGGER.error("Failed to save configuration files: %s", err)
 
 
 class ModbusTcpRawClient:
