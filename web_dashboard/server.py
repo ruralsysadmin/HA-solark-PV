@@ -394,60 +394,6 @@ class SolArkDataPoller:
         grid_export_p = max(0, -grid_tot_p)
         load_power = max(0, pv_tot_p + batt_disch_p + grid_import_p - batt_chg_p - grid_export_p)
 
-        return {
-            "mode": "live",
-            "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
-            "summary": {
-                "pv_power_w": pv_tot_p,
-                "battery_power_w": batt_p,
-                "battery_soc_pct": batt_soc,
-                "grid_power_w": grid_tot_p,
-                "load_power_w": load_power,
-                "grid_connected": grid_relay_raw == 1,
-            },
-            "solar": {
-                "pv_total_power_w": pv_tot_p,
-                "daily_pv_energy_kwh": daily_pv_e,
-                "strings": [
-                    {"name": "PV String 1", "voltage_v": pv1_v, "current_a": pv1_c, "power_w": pv1_p},
-                    {"name": "PV String 2", "voltage_v": pv2_v, "current_a": pv2_c, "power_w": pv2_p},
-                    {"name": "PV String 3", "voltage_v": pv3_v, "current_a": pv3_c, "power_w": pv3_p},
-                ],
-            },
-            "battery": {
-                "soc_pct": batt_soc,
-                "power_w": batt_p,
-                "current_a": batt_c,
-                "voltage_v": batt_v,
-                "status": "Charging" if batt_p < 0 else ("Discharging" if batt_p > 0 else "Idle"),
-                "daily_charge_kwh": daily_batt_c_e,
-                "daily_discharge_kwh": daily_batt_d_e,
-            },
-            "grid": {
-                "status": "Connected" if grid_relay_raw == 1 else "Disconnected / Outage",
-                "relay_code": grid_relay_raw,
-                "frequency_hz": grid_freq,
-                "voltage_l1_v": grid_l1_v,
-                "voltage_l2_v": grid_l2_v,
-                "power_l1_w": grid_l1_p,
-                "power_l2_w": grid_l2_p,
-                "power_total_w": grid_tot_p,
-                "daily_buy_kwh": daily_grid_buy,
-                "daily_sell_kwh": daily_grid_sell,
-            },
-            "load": {
-                "power_w": load_power,
-                "daily_load_kwh": daily_load_e,
-                "total_load_kwh": tot_load_e,
-                "frequency_hz": load_freq,
-                "inverter_freq_hz": inv_freq,
-            },
-            "diagnostics": {
-                "dc_temp_c": dc_temp_c,
-                "ac_temp_c": ac_temp_c,
-                "fault_raw_bitmap": str(fault_raw),
-                "active_faults": active_faults,
-            },
         # Base register list
         registers_list = [
             {"address": 60, "key": "dailyinv_e", "name": "Daily Inverter Energy", "val": daily_inv_e, "unit": "kWh"},
