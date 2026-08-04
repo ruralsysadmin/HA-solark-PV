@@ -430,16 +430,11 @@ class SolArkDataPoller:
         if r140_179:
             for idx, raw_val in enumerate(r140_179):
                 addr = 140 + idx
-                name = f"Holding Register R{addr}"
-                val_str = raw_val
-                if addr == 145:
-                    name = "System Work Mode / TOU Bitmask (R145)"
-                    val_str = f"{raw_val} (TOU: {'ON' if tou_enabled else 'OFF'}, Grid Charge: {'ON' if grid_charge_enabled else 'OFF'}, Gen Charge: {'ON' if gen_charge_enabled else 'OFF'})"
                 registers_list.append({
                     "address": addr,
                     "key": f"r{addr}_val",
-                    "name": name,
-                    "val": val_str,
+                    "name": f"Holding Register R{addr}",
+                    "val": raw_val,
                     "unit": ""
                 })
 
