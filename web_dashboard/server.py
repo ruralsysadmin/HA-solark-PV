@@ -302,10 +302,8 @@ class SolArkDataPoller:
         r96_108 = client.read_holding_registers(96, 13, slave_id)
         # Read range 109-114 (PV Voltages and Currents)
         r109_114 = client.read_holding_registers(109, 6, slave_id)
-        # Read range 145-148 (Time-of-Use Mode, TOU Master Enable, TOU Sell Power Limit)
-        r145_148 = client.read_holding_registers(145, 4, slave_id)
-        # Read range 150-170 (Grid L1/L2 Voltages and Powers)
-        r150_170 = client.read_holding_registers(150, 21, slave_id)
+        # Read range 140-179 (System Work Modes, TOU Registers 140-149, Grid Voltages & Powers 150-170)
+        r140_179 = client.read_holding_registers(140, 40, slave_id)
         # Read range 183-196 (Battery SOC/Volt/Power/Current, PV Powers, Relays)
         r183_196 = client.read_holding_registers(183, 14, slave_id)
 
@@ -337,20 +335,28 @@ class SolArkDataPoller:
         pv3_v = round((r109_114[4] if r109_114 else 0) * 0.1, 1)
         pv3_c = round((r109_114[5] if r109_114 else 0) * 0.1, 1)
 
-        tou_mode_raw = r145_148[0] if r145_148 else 0
-        tou_enable_raw = r145_148[1] if r145_148 and len(r145_148) > 1 else 0
-        tou_sell_power = r145_148[2] if r145_148 and len(r145_148) > 2 else 0
+        # R140 - R179 parsing
+        r140_val = r140_179[0] if r140_179 else 0
+        r141_val = r140_179[1] if r140_179 and len(r140_179) > 1 else 0
+        r142_val = r140_179[2] if r140_179 and len(r140_179) > 2 else 0
+        r143_val = r140_179[3] if r140_179 and len(r140_179) > 3 else 0
+        r144_val = r140_179[4] if r140_179 and len(r140_179) > 4 else 0
+        r145_val = r140_179[5] if r140_179 and len(r140_179) > 5 else 0
+        r146_val = r140_179[6] if r140_179 and len(r140_179) > 6 else 0
+        r147_val = r140_179[7] if r140_179 and len(r140_179) > 7 else 0
+        r148_val = r140_179[8] if r140_179 and len(r140_179) > 8 else 0
+        r149_val = r140_179[9] if r140_179 and len(r140_179) > 9 else 0
 
-        grid_l1_v = round((r150_170[0] if r150_170 else 0) * 0.1, 1)
-        grid_l2_v = round((r150_170[1] if r150_170 else 0) * 0.1, 1)
+        grid_l1_v = round((r140_179[10] if r140_179 and len(r140_179) > 10 else 0) * 0.1, 1)
+        grid_l2_v = round((r140_179[11] if r140_179 and len(r140_179) > 11 else 0) * 0.1, 1)
 
         # Signed 16-bit helper
         def to_s16(val):
             return val - 65536 if val > 32767 else val
 
-        grid_l1_p = to_s16(r150_170[17]) if r150_170 and len(r150_170) > 17 else 0
-        grid_l2_p = to_s16(r150_170[18]) if r150_170 and len(r150_170) > 18 else 0
-        grid_tot_p = to_s16(r150_170[19]) if r150_170 and len(r150_170) > 19 else 0
+        grid_l1_p = to_s16(r140_179[27]) if r140_179 and len(r140_179) > 27 else 0
+        grid_l2_p = to_s16(r140_179[28]) if r140_179 and len(r140_179) > 28 else 0
+        grid_tot_p = to_s16(r140_179[29]) if r140_179 and len(r140_179) > 29 else 0
 
         batt_v = round((r183_196[0] if r183_196 else 0) * 0.01, 2)
         batt_soc = r183_196[1] if r183_196 else 0
@@ -458,9 +464,16 @@ class SolArkDataPoller:
                 {"address": 112, "key": "pv2_c", "name": "PV2 Current", "val": pv2_c, "unit": "A"},
                 {"address": 113, "key": "pv3_v", "name": "PV3 Voltage", "val": pv3_v, "unit": "V"},
                 {"address": 114, "key": "pv3_c", "name": "PV3 Current", "val": pv3_c, "unit": "A"},
-                {"address": 145, "key": "tou_mode", "name": "Time-of-Use Mode Flag", "val": f"{tou_mode_raw} ({'Active' if tou_mode_raw == 1 else 'Inactive'})", "unit": ""},
-                {"address": 146, "key": "tou_enable", "name": "Time-of-Use Master Enable", "val": f"{tou_enable_raw} ({'Enabled [ON]' if tou_enable_raw == 1 else 'Disabled [OFF]'})", "unit": ""},
-                {"address": 147, "key": "tou_sell_power", "name": "Time-of-Use Sell Power Limit", "val": tou_sell_power, "unit": "W"},
+                {"address": 140, "key": "r140_val", "name": "System Setting / Mode R140", "val": r140_val, "unit": ""},
+                {"address": 141, "key": "r141_val", "name": "System Setting / Mode R141", "val": r141_val, "unit": ""},
+                {"address": 142, "key": "r142_val", "name": "System Setting / Mode R142", "val": r142_val, "unit": ""},
+                {"address": 143, "key": "r143_val", "name": "System Setting / Mode R143", "val": r143_val, "unit": ""},
+                {"address": 144, "key": "r144_val", "name": "System Setting / Mode R144", "val": r144_val, "unit": ""},
+                {"address": 145, "key": "r145_val", "name": "System Setting / Mode R145", "val": r145_val, "unit": ""},
+                {"address": 146, "key": "r146_val", "name": "System Setting / Mode R146", "val": r146_val, "unit": ""},
+                {"address": 147, "key": "r147_val", "name": "System Setting / Mode R147", "val": r147_val, "unit": ""},
+                {"address": 148, "key": "r148_val", "name": "System Setting / Mode R148", "val": r148_val, "unit": ""},
+                {"address": 149, "key": "r149_val", "name": "System Setting / Mode R149", "val": r149_val, "unit": ""},
                 {"address": 150, "key": "gridl1n_v", "name": "Grid L1-N Voltage", "val": grid_l1_v, "unit": "V"},
                 {"address": 151, "key": "gridl2n_v", "name": "Grid L2-N Voltage", "val": grid_l2_v, "unit": "V"},
                 {"address": 167, "key": "gridl1_p", "name": "Grid L1 Power", "val": grid_l1_p, "unit": "W"},
