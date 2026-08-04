@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sol-Ark Modbus Live Monitor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Navigation Header -->
+    <header class="navbar">
+      <div class="brand">
+        <div class="logo-icon">⚡</div>
+        <div class="brand-text">
+          <h1>Sol-Ark <span>Monitor</span></h1>
+          <span class="sub-text">RS485-to-WiFi Modbus Dashboard</span>
+        </div>
+      </div>
+
+      <div class="nav-controls">
+        <div id="status-badge" class="badge badge-offline">
+          <span class="dot"></span>
+          <span id="status-text">Connecting...</span>
+        </div>
+
+        <div class="control-group">
+          <label for="poll-rate">Refresh:</label>
+          <select id="poll-rate">
+            <option value="2">2s</option>
+            <option value="5" selected>5s</option>
+            <option value="10">10s</option>
+          </select>
+        </div>
+
+        <button id="config-btn" class="btn btn-secondary">
+          <span class="btn-icon">⚙️</span> RS485 Dongle Config
+        </button>
+
+        <div class="timestamp" id="last-update">--:--:--</div>
+      </div>
+    </header>
+
+    <!-- Error Banner (if connection drops) -->
+    <div id="error-banner" class="banner banner-error hidden">
+      <span class="banner-icon">⚠️</span>
+      <span id="error-message">Cannot reach Modbus RS485 Dongle. Showing cached/demo data.</span>
+      <button class="banner-close" id="dismiss-error">&times;</button>
+    </div>
+
+    <!-- Hero Energy Flow Section -->
+    <section class="hero-flow-card">
+      <div class="card-header">
+        <h2>Live Power Flow</h2>
+        <span class="header-tag" id="flow-mode-tag">Real-Time Balancing</span>
+      </div>
+
+      <div class="energy-flow-diagram">
+        <!-- Node 1: Solar PV -->
+        <div class="flow-node node-solar">
+          <div class="node-icon">☀️</div>
+          <div class="node-title">Solar PV</div>
+          <div class="node-value" id="flow-solar-power">0 W</div>
+          <div class="node-sub" id="flow-solar-sub">Daily: 0.0 kWh</div>
+        </div>
+
+        <!-- Flow Line Solar -> Inverter -->
+        <div class="flow-line line-solar-inv">
+          <div class="flow-particles particle-pv" id="particle-pv"></div>
+        </div>
+
+        <!-- Central Node: Sol-Ark Inverter -->
+        <div class="flow-node node-inverter">
+          <div class="node-icon">🎛️</div>
+          <div class="node-title">Sol-Ark Inverter</div>
+          <div class="node-status" id="flow-inv-status">System Normal</div>
+          <div class="node-temp" id="flow-inv-temp">DC 0°C | AC 0°C</div>
+        </div>
+
+        <!-- Flow Line Inverter <-> Battery -->
+        <div class="flow-line line-inv-batt">
+          <div class="flow-particles particle-batt" id="particle-batt"></div>
+        </div>
+
+        <!-- Node 2: Battery -->
+        <div class="flow-node node-battery">
+          <div class="node-icon">🔋</div>
+          <div class="node-title">Battery Storage</div>
+          <div class="node-value" id="flow-batt-power">0 W</div>
+          <div class="node-sub" id="flow-batt-soc">SOC: 0%</div>
+        </div>
+
+        <!-- Flow Line Inverter <-> Grid -->
+        <div class="flow-line line-inv-grid">
+          <div class="flow-particles particle-grid" id="particle-grid"></div>
+        </div>
+
+        <!-- Node 3: Utility Grid -->
+        <div class="flow-node node-grid">
+          <div class="node-icon">🔌</div>
+          <div class="node-title">Utility Grid</div>
+          <div class="node-value" id="flow-grid-power">0 W</div>
+          <div class="node-sub" id="flow-grid-status">Grid: Connected</div>
+        </div>
+
+        <!-- Flow Line Inverter -> Home Load -->
+        <div class="flow-line line-inv-load">
+          <div class="flow-particles particle-load" id="particle-load"></div>
+        </div>
+
+        <!-- Node 4: Home Load -->
+        <div class="flow-node node-load">
+          <div class="node-icon">🏡</div>
+          <div class="node-title">Home Load</div>
+          <div class="node-value" id="flow-load-power">0 W</div>
+          <div class="node-sub" id="flow-load-sub">Daily: 0.0 kWh</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Main Section Grid -->
+    <main class="sections-grid">
+      <!-- Section 1: Solar PV Strings -->
+      <div class="metric-card card-solar">
+        <div class="card-title">
+          <span class="icon">☀️</span> Solar Array Strings
+        </div>
+
+        <div class="summary-metric">
+          <span class="label">Total Solar Power</span>
+          <span class="value" id="solar-total-power">0 W</span>
+          <span class="trend-sub" id="solar-daily-gen">Daily Yield: 0.0 kWh</span>
+        </div>
+
+        <div class="strings-list" id="pv-strings-container">
+          <!-- Dynamically populated string rows -->
+        </div>
+      </div>
+
+      <!-- Section 2: Battery System -->
+      <div class="metric-card card-battery">
+        <div class="card-title">
+          <span class="icon">🔋</span> Battery System
+        </div>
+
+        <div class="soc-gauge-container">
+          <div class="soc-header">
+            <span class="label">State of Charge (SOC)</span>
+            <span class="soc-pct" id="batt-soc-text">0%</span>
+          </div>
+          <div class="soc-bar-bg">
+            <div class="soc-bar-fill" id="batt-soc-bar" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <div class="metrics-row">
+          <div class="metric-item">
+            <span class="m-label">Power</span>
+            <span class="m-val" id="batt-power-val">0 W</span>
+          </div>
+          <div class="metric-item">
+            <span class="m-label">Voltage</span>
+            <span class="m-val" id="batt-volt-val">0.0 V</span>
+          </div>
+          <div class="metric-item">
+            <span class="m-label">Current</span>
+            <span class="m-val" id="batt-curr-val">0.0 A</span>
+          </div>
+          <div class="metric-item">
+            <span class="m-label">Status</span>
+            <span class="m-val" id="batt-status-val">Idle</span>
+          </div>
+        </div>
+
+        <div class="energy-subrow">
+          <span>Daily Charge: <strong id="batt-daily-chg">0.0 kWh</strong></span>
+          <span>Daily Discharge: <strong id="batt-daily-disch">0.0 kWh</strong></span>
+        </div>
+      </div>
+
+      <!-- Section 3: Utility Grid -->
+      <div class="metric-card card-grid">
+        <div class="card-title">
+          <span class="icon">🔌</span> Utility Grid Connection
+        </div>
+
+        <div class="summary-metric">
+          <span class="label">Net Grid Power</span>
+          <span class="value" id="grid-net-power">0 W</span>
+          <span class="trend-sub" id="grid-relay-status">Relay: Connected</span>
+        </div>
+
+        <div class="metrics-row">
+          <div class="metric-item">
+            <span class="m-label">L1-N Voltage</span>
+            <span class="m-val" id="grid-l1-v">0.0 V</span>
+          </div>
+          <div class="metric-item">
+            <span class="m-label">L2-N Voltage</span>
+            <span class="m-val" id="grid-l2-v">0.0 V</span>
+          </div>
+          <div class="metric-item">
+            <span class="m-label">Frequency</span>
+            <span class="m-val" id="grid-freq-val">60.00 Hz</span>
+          </div>
+        </div>
+
+        <div class="energy-subrow">
+          <span>Daily Buy: <strong id="grid-daily-buy">0.0 kWh</strong></span>
+          <span>Daily Sell: <strong id="grid-daily-sell">0.0 kWh</strong></span>
+        </div>
+      </div>
+
+      <!-- Section 4: Home Load & Output -->
+      <div class="metric-card card-load">
+        <div class="card-title">
+          <span class="icon">🏡</span> House Load & Output
+        </div>
+
+        <div class="summary-metric">
+          <span class="label">Total Active Load</span>
+          <span class="value" id="load-total-power">0 W</span>
+          <span class="trend-sub" id="load-daily-e">Daily Consumed: 0.0 kWh</span>
+        </div>
+
+        <div class="metrics-row">
+          <div class="metric-item">
+            <span class="m-label">Load Frequency</span>
+            <span class="m-val" id="load-freq-val">60.00 Hz</span>
+          </div>
+          <div class="metric-item">
+            <span class="m-label">Inverter Frequency</span>
+            <span class="m-val" id="inv-freq-val">60.00 Hz</span>
+          </div>
+          <div class="metric-item">
+            <span class="m-label">Lifetime Load</span>
+            <span class="m-val" id="load-tot-e">0 kWh</span>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Diagnostics & Active Faults Section -->
+    <section class="diagnostics-card">
+      <div class="card-header">
+        <h2>Inverter Diagnostics & Fault Alarms</h2>
+        <span class="header-tag" id="fault-count-tag">No Active Faults</span>
+      </div>
+
+      <div class="diag-grid">
+        <div class="temp-box">
+          <div class="temp-title">Temperatures</div>
+          <div class="temp-values">
+            <div class="temp-chip">
+              <span class="t-label">DC Heatsink</span>
+              <span class="t-val" id="dc-temp-val">0.0 °C</span>
+            </div>
+            <div class="temp-chip">
+              <span class="t-label">AC Heatsink</span>
+              <span class="t-val" id="ac-temp-val">0.0 °C</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="faults-box">
+          <div class="faults-title">Active Alarm Codes</div>
+          <div class="faults-list" id="faults-container">
+            <div class="no-faults-msg">✅ System operating normally with zero active fault codes.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Interactive Register Explorer Section -->
+    <section class="register-explorer-card">
+      <div class="card-header">
+        <h2>Sol-Ark Modbus Register Explorer</h2>
+        <div class="table-search-box">
+          <input type="text" id="register-search" placeholder="Search registers by address, name, or key...">
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="register-table">
+          <thead>
+            <tr>
+              <th>Address</th>
+              <th>Register Key</th>
+              <th>Description / Name</th>
+              <th>Live Value</th>
+              <th>Unit</th>
+            </tr>
+          </thead>
+          <tbody id="register-table-body">
+            <!-- Dynamically populated register table -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <!-- Dongle Configuration Modal -->
+  <div id="config-modal" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>RS485-to-WiFi Dongle Settings</h3>
+        <button class="modal-close" id="modal-close">&times;</button>
+      </div>
+
+      <form id="config-form">
+        <div class="form-group">
+          <label for="cfg-host">RS485 Dongle / Gateway IP Address:</label>
+          <input type="text" id="cfg-host" required placeholder="e.g. 192.168.1.100">
+          <span class="form-help">IP address or hostname of your Ethernet/WiFi Modbus gateway.</span>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="cfg-port">Modbus TCP Port:</label>
+            <input type="number" id="cfg-port" required value="502" min="1" max="65535">
+          </div>
+          <div class="form-group">
+            <label for="cfg-slave-id">Slave Drop ID:</label>
+            <input type="number" id="cfg-slave-id" required value="1" min="1" max="247">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="cfg-interval">Scan Interval (seconds):</label>
+            <input type="number" id="cfg-interval" required value="5" min="1" max="60">
+          </div>
+          <div class="form-group checkbox-group">
+            <label for="cfg-demo">
+              <input type="checkbox" id="cfg-demo"> Enable Offline Demo Mode
+            </label>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="modal-cancel">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save & Connect</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

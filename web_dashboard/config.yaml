@@ -1,0 +1,12 @@
+# Sol-Ark RS485-to-WiFi / Modbus TCP Gateway Connection Configuration
+modbus:
+  host: "192.168.1.100"  # IP address or hostname of your RS485-to-WiFi dongle / Modbus TCP gateway
+  port: 502              # Modbus TCP Port (default 502)
+  slave_id: 1            # Modbus Slave ID (default 1)
+  timeout: 3             # Connection timeout in seconds
+  scan_interval: 5       # Auto refresh polling interval in seconds
+
+server:
+  host: "0.0.0.0"        # Web server bind host
+  port: 8080             # Web dashboard HTTP port
+  demo_mode: false       # Set to true to simulate live data when dongle is disconnected
