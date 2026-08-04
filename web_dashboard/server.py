@@ -346,8 +346,14 @@ class SolArkDataPoller:
         r145_val = r140_179[5] if r140_179 and len(r140_179) > 5 else 0
         r146_val = r140_179[6] if r140_179 and len(r140_179) > 6 else 0
         r147_val = r140_179[7] if r140_179 and len(r140_179) > 7 else 0
-        r148_val = r140_179[8] if r140_179 and len(r140_179) > 8 else 0
-        r149_val = r140_179[9] if r140_179 and len(r140_179) > 9 else 0
+
+        # Register 145 Bitmask Decoding (Sol-Ark 15k System Work Mode):
+        # Bit 0 (0x01): TOU Master Enable (1 = Enabled, 0 = Disabled)
+        # Bit 2 (0x04): Grid Charge Enable (1 = Enabled, 0 = Disabled)
+        # Bit 4 (0x10): Generator Charge Enable (1 = Enabled, 0 = Disabled)
+        tou_enabled = bool(r145_val & 0x01)
+        grid_charge_enabled = bool(r145_val & 0x04)
+        gen_charge_enabled = bool(r145_val & 0x10)
 
         grid_l1_v = round((r140_179[10] if r140_179 and len(r140_179) > 10 else 0) * 0.1, 1)
         grid_l2_v = round((r140_179[11] if r140_179 and len(r140_179) > 11 else 0) * 0.1, 1)
@@ -419,11 +425,16 @@ class SolArkDataPoller:
         if r140_179:
             for idx, raw_val in enumerate(r140_179):
                 addr = 140 + idx
+                name = f"Holding Register R{addr}"
+                val_str = raw_val
+                if addr == 145:
+                    name = "System Work Mode / TOU Bitmask (R145)"
+                    val_str = f"{raw_val} (TOU: {'ON' if tou_enabled else 'OFF'}, Grid Charge: {'ON' if grid_charge_enabled else 'OFF'}, Gen Charge: {'ON' if gen_charge_enabled else 'OFF'})"
                 registers_list.append({
                     "address": addr,
                     "key": f"r{addr}_val",
-                    "name": f"Holding Register R{addr}",
-                    "val": raw_val,
+                    "name": name,
+                    "val": val_str,
                     "unit": ""
                 })
 
